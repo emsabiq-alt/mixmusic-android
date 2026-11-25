@@ -79,6 +79,7 @@ object SpotifyService {
             .appendQueryParameter("code_challenge_method", "S256")
             .appendQueryParameter("code_challenge", codeChallenge)
             .appendQueryParameter("scope", scopes)
+            .appendQueryParameter("show_dialog", "true")
             .build()
 
         val intent = Intent(Intent.ACTION_VIEW, authUrl).apply {

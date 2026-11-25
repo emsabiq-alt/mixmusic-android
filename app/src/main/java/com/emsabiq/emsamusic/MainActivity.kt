@@ -7,15 +7,18 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.emsabiq.emsamusic.services.PlaybackService
+import com.emsabiq.emsamusic.services.SpotifyService
 import com.emsabiq.emsamusic.ui.components.MiniPlayer
 import com.emsabiq.emsamusic.ui.components.NowPlayingScreen
 import com.emsabiq.emsamusic.ui.screens.HomeScreen
+import com.emsabiq.emsamusic.ui.screens.LibraryScreen
 import com.emsabiq.emsamusic.ui.screens.SearchScreen
 import com.emsabiq.emsamusic.ui.theme.EmsaMusicTheme
 import com.emsabiq.emsamusic.ui.theme.SpotifyBlack
@@ -27,6 +30,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Initialize Spotify Service
+        SpotifyService.init(this)
+
+        // Handle OAuth callback intent
+        intent?.data?.let { uri ->
+            if (uri.scheme == "emsamusic") {
+                SpotifyService.handleAuthRedirect(this, uri)
+            }
+        }
+
         // Start media session service for background playback
         val serviceIntent = Intent(this, PlaybackService::class.java)
         startService(serviceIntent)
@@ -34,6 +47,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             EmsaMusicTheme {
                 MainContent()
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.data?.let { uri ->
+            if (uri.scheme == "emsamusic") {
+                SpotifyService.handleAuthRedirect(this, uri)
             }
         }
     }
@@ -82,6 +104,19 @@ fun MainContent() {
                             indicatorColor = Color.Transparent
                         )
                     )
+                    NavigationBarItem(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        icon = { Icon(Icons.Default.LibraryMusic, contentDescription = "Library") },
+                        label = { Text("Koleksi") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = SpotifyGreen,
+                            selectedTextColor = SpotifyGreen,
+                            unselectedIconColor = SpotifyGrey,
+                            unselectedTextColor = SpotifyGrey,
+                            indicatorColor = Color.Transparent
+                        )
+                    )
                 }
             }
         }
@@ -94,6 +129,7 @@ fun MainContent() {
             when (selectedTab) {
                 0 -> HomeScreen()
                 1 -> SearchScreen()
+                2 -> LibraryScreen()
             }
         }
     }

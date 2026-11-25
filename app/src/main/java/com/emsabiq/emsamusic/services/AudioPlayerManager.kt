@@ -137,9 +137,16 @@ object AudioPlayerManager {
             }
         }
 
-        // 2. Resolve Direct Stream URL and play via ExoPlayer
+        // 2. Resolve Direct Stream URL (with Spotify hybrid bridge) and play via ExoPlayer
         scope.launch {
-            val streamUrl = YouTubeMusicService.resolveStreamUrl(track.id)
+            var actualId = track.id
+            if (track.id.startsWith("sp:")) {
+                val found = YouTubeMusicService.search("${track.title} ${track.artist}")
+                if (found.isNotEmpty()) {
+                    actualId = found[0].id
+                }
+            }
+            val streamUrl = YouTubeMusicService.resolveStreamUrl(actualId)
             if (streamUrl != null) {
                 val mediaItem = MediaItem.Builder()
                     .setUri(streamUrl)

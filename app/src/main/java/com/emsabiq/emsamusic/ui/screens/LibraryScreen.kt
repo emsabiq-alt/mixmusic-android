@@ -116,7 +116,7 @@ fun LibraryScreen() {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(SpotifyCard)
-                    .clickable { SpotifyService.startLogin(context) }
+                    .clickable { SpotifyService.startLogin() }
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -144,7 +144,7 @@ fun LibraryScreen() {
                 }
 
                 Button(
-                    onClick = { SpotifyService.startLogin(context) },
+                    onClick = { SpotifyService.startLogin() },
                     colors = ButtonDefaults.buttonColors(containerColor = SpotifyGreen),
                     shape = RoundedCornerShape(20.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)

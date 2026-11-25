@@ -34,7 +34,7 @@ data class SpotifyPlaylist(
 
 object SpotifyService {
     val clientId = "5e98adbd48744236a380dca10ee8a36a"
-    val redirectUri = "emsamusic://callback"
+    val redirectUri = "http://127.0.0.1:47823/callback"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
@@ -45,6 +45,9 @@ object SpotifyService {
 
     private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn = _isLoggedIn.asStateFlow()
+
+    private val _activeLoginUrl = MutableStateFlow<String?>(null)
+    val activeLoginUrl = _activeLoginUrl.asStateFlow()
 
     private val _userProfile = MutableStateFlow<SpotifyUser?>(null)
     val userProfile = _userProfile.asStateFlow()
@@ -67,7 +70,7 @@ object SpotifyService {
         }
     }
 
-    fun startLogin(context: Context) {
+    fun startLogin() {
         codeVerifier = generateCodeVerifier()
         val codeChallenge = generateCodeChallenge(codeVerifier)
 
@@ -82,17 +85,23 @@ object SpotifyService {
             .appendQueryParameter("show_dialog", "true")
             .build()
 
-        val intent = Intent(Intent.ACTION_VIEW, authUrl).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        _activeLoginUrl.value = authUrl.toString()
+    }
+
+    fun cancelLogin() {
+        _activeLoginUrl.value = null
+    }
+
+    fun handleAuthCode(context: Context, code: String) {
+        _activeLoginUrl.value = null
+        scope.launch {
+            exchangeCodeForToken(context, code)
         }
-        context.startActivity(intent)
     }
 
     fun handleAuthRedirect(context: Context, uri: Uri) {
         val code = uri.getQueryParameter("code") ?: return
-        scope.launch {
-            exchangeCodeForToken(context, code)
-        }
+        handleAuthCode(context, code)
     }
 
     private suspend fun exchangeCodeForToken(context: Context, code: String) = withContext(Dispatchers.IO) {

@@ -2,17 +2,28 @@ package com.emsabiq.emsamusic
 
 import android.content.Intent
 import android.os.Bundle
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.emsabiq.emsamusic.services.PlaybackService
 import com.emsabiq.emsamusic.services.SpotifyService
 import com.emsabiq.emsamusic.ui.components.MiniPlayer
@@ -33,13 +44,6 @@ class MainActivity : ComponentActivity() {
         // Initialize Spotify Service
         SpotifyService.init(this)
 
-        // Handle OAuth callback intent
-        intent?.data?.let { uri ->
-            if (uri.scheme == "emsamusic") {
-                SpotifyService.handleAuthRedirect(this, uri)
-            }
-        }
-
         // Start media session service for background playback
         val serviceIntent = Intent(this, PlaybackService::class.java)
         startService(serviceIntent)
@@ -50,21 +54,14 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        intent.data?.let { uri ->
-            if (uri.scheme == "emsamusic") {
-                SpotifyService.handleAuthRedirect(this, uri)
-            }
-        }
-    }
 }
 
 @Composable
 fun MainContent() {
     var selectedTab by remember { mutableIntStateOf(0) }
     var showNowPlaying by remember { mutableStateOf(false) }
+    val activeLoginUrl by SpotifyService.activeLoginUrl.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         containerColor = SpotifyBlack,
@@ -138,5 +135,66 @@ fun MainContent() {
         NowPlayingScreen(
             onDismiss = { showNowPlaying = false }
         )
+    }
+
+    // In-App Spotify OAuth Dialog (matches exact http://127.0.0.1:47823/callback registered in dashboard)
+    activeLoginUrl?.let { loginUrl ->
+        Dialog(
+            onDismissRequest = { SpotifyService.cancelLogin() },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = SpotifyBlack
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Masuk ke Spotify",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                        IconButton(onClick = { SpotifyService.cancelLogin() }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Tutup",
+                                tint = Color.White
+                            )
+                        }
+                    }
+
+                    AndroidView(
+                        factory = { ctx ->
+                            WebView(ctx).apply {
+                                settings.javaScriptEnabled = true
+                                settings.domStorageEnabled = true
+                                webViewClient = object : WebViewClient() {
+                                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                                        val url = request?.url?.toString() ?: ""
+                                        if (url.contains("127.0.0.1:47823/callback")) {
+                                            val code = request?.url?.getQueryParameter("code")
+                                            if (code != null) {
+                                                SpotifyService.handleAuthCode(context, code)
+                                                return true
+                                            }
+                                        }
+                                        return false
+                                    }
+                                }
+                                loadUrl(loginUrl)
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
     }
 }

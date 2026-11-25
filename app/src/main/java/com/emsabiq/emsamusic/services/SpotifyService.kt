@@ -209,6 +209,45 @@ object SpotifyService {
         } catch (_: Exception) {}
     }
 
+    suspend fun fetchPlaylistTracks(playlistId: String): List<Track> = withContext(Dispatchers.IO) {
+        val token = accessToken ?: return@withContext emptyList()
+        try {
+            val req = Request.Builder()
+                .url("https://api.spotify.com/v1/playlists/$playlistId/tracks?limit=100")
+                .header("Authorization", "Bearer $token")
+                .build()
+
+            client.newCall(req).execute().use { resp ->
+                if (resp.isSuccessful) {
+                    val json = JSONObject(resp.body?.string() ?: "")
+                    val items = json.optJSONArray("items") ?: JSONArray()
+                    val result = mutableListOf<Track>()
+
+                    for (i in 0 until items.length()) {
+                        val item = items.getJSONObject(i)
+                        val t = item.optJSONObject("track") ?: continue
+                        val id = t.getString("id")
+                        val name = t.getString("name")
+                        var artist = "Various Artists"
+                        val artists = t.optJSONArray("artists")
+                        if (artists != null && artists.length() > 0) {
+                            artist = artists.getJSONObject(0).optString("name", "Various Artists")
+                        }
+                        var thumb = ""
+                        val imgs = t.optJSONObject("album")?.optJSONArray("images")
+                        if (imgs != null && imgs.length() > 0) {
+                            thumb = imgs.getJSONObject(0).optString("url")
+                        }
+                        val durMs = t.optInt("duration_ms", 0)
+                        result.add(Track("sp:$id", name, artist, thumb, durMs / 1000))
+                    }
+                    return@withContext result
+                }
+            }
+        } catch (_: Exception) {}
+        return@withContext emptyList()
+    }
+
     private suspend fun fetchLikedSongs() = withContext(Dispatchers.IO) {
         val token = accessToken ?: return@withContext
         try {

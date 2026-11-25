@@ -29,6 +29,9 @@ import com.emsabiq.emsamusic.ui.theme.SpotifyBlack
 import com.emsabiq.emsamusic.ui.theme.SpotifyCard
 import com.emsabiq.emsamusic.ui.theme.SpotifyGreen
 import com.emsabiq.emsamusic.ui.theme.SpotifyGrey
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun LibraryScreen() {
@@ -157,28 +160,96 @@ fun LibraryScreen() {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Tracks / Playlists List
-        if (isLoggedIn && likedTracks.isNotEmpty()) {
-            Text(
-                text = "Lagu Disukai (${likedTracks.size})",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
+        if (isLoggedIn) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 120.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                itemsIndexed(likedTracks) { index, track ->
-                    TrackRow(
-                        rank = index + 1,
-                        track = track,
-                        onClick = {
-                            AudioPlayerManager.play(track, fromQueue = likedTracks)
+                if (likedTracks.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Lagu Disukai (${likedTracks.size})",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
+                    itemsIndexed(likedTracks) { index, track ->
+                        TrackRow(
+                            rank = index + 1,
+                            track = track,
+                            onClick = {
+                                AudioPlayerManager.play(track, fromQueue = likedTracks)
+                            }
+                        )
+                    }
+                }
+
+                if (playlists.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Playlist Spotify Kamu (${playlists.size})",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
+                    itemsIndexed(playlists) { _, pl ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(SpotifyCard)
+                                .clickable {
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        val pTracks = SpotifyService.fetchPlaylistTracks(pl.id)
+                                        if (pTracks.isNotEmpty()) {
+                                            AudioPlayerManager.play(pTracks[0], fromQueue = pTracks)
+                                        }
+                                    }
+                                }
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (pl.imageUrl != null) {
+                                AsyncImage(
+                                    model = pl.imageUrl,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(4.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.MusicNote,
+                                    contentDescription = null,
+                                    tint = SpotifyGreen,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = pl.name,
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "${pl.trackCount} Lagu",
+                                    color = SpotifyGrey,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
-                    )
+                    }
                 }
             }
         }

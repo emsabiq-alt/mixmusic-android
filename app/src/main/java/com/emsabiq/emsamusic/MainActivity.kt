@@ -120,7 +120,7 @@ fun MainContent() {
                     NavigationBarItem(
                         selected = selectedTab == 3,
                         onClick = { selectedTab = 3 },
-                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                        icon = { Icon(Icons.Default.Tune, contentDescription = "Settings") },
                         label = { Text("Pengaturan") },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = SpotifyGreen,

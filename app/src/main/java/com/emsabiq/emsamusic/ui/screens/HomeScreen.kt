@@ -325,3 +325,69 @@ private fun getGreeting(): String {
         else -> "Selamat Malam 🌙"
     }
 }
+
+@Composable
+fun TrackRow(
+    rank: Int,
+    track: Track,
+    onClick: () -> Unit
+) {
+    val currentTrack by AudioPlayerManager.currentTrack.collectAsState()
+    val isPlaying by AudioPlayerManager.isPlaying.collectAsState()
+    val isSelected = currentTrack?.id == track.id
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "$rank",
+            color = if (isSelected) SpotifyGreen else SpotifyGrey,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(32.dp)
+        )
+
+        AsyncImage(
+            model = track.thumbnailUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(4.dp))
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = track.title,
+                color = if (isSelected) SpotifyGreen else Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = track.artist,
+                color = SpotifyGrey,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = track.durationFormatted,
+            color = SpotifyGrey,
+            fontSize = 12.sp
+        )
+    }
+}

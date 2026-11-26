@@ -118,7 +118,7 @@ fun SettingsScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Bersihkan Cache Audio & Gambar", color = Color.White, fontSize = 15.sp)
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "Clear", tint = SpotifyGrey)
+                        Icon(Icons.Default.Clear, contentDescription = "Clear", tint = SpotifyGrey)
                     }
                 }
             }

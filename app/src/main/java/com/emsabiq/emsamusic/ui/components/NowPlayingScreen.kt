@@ -148,13 +148,25 @@ fun NowPlayingScreen(
                         .fillMaxWidth()
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF282828)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    AsyncImage(
-                        model = track?.thumbnailUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    val thumbUrl = track?.thumbnailUrl
+                    if (!thumbUrl.isNullOrEmpty()) {
+                        AsyncImage(
+                            model = thumbUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = SpotifyGrey,
+                            modifier = Modifier.size(64.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

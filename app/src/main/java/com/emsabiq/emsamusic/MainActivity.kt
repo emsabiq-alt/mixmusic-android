@@ -32,6 +32,7 @@ import com.emsabiq.emsamusic.ui.components.NowPlayingScreen
 import com.emsabiq.emsamusic.ui.screens.HomeScreen
 import com.emsabiq.emsamusic.ui.screens.LibraryScreen
 import com.emsabiq.emsamusic.ui.screens.SearchScreen
+import com.emsabiq.emsamusic.ui.screens.SettingsScreen
 import com.emsabiq.emsamusic.ui.theme.EmsaMusicTheme
 import com.emsabiq.emsamusic.ui.theme.SpotifyBlack
 import com.emsabiq.emsamusic.ui.theme.SpotifyDarkGrey
@@ -81,7 +82,7 @@ fun MainContent() {
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
                         icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                        label = { Text("Utama") },
+                        label = { Text("Beranda") },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = SpotifyGreen,
                             selectedTextColor = SpotifyGreen,
@@ -107,7 +108,20 @@ fun MainContent() {
                         selected = selectedTab == 2,
                         onClick = { selectedTab = 2 },
                         icon = { Icon(Icons.Default.LibraryMusic, contentDescription = "Library") },
-                        label = { Text("Koleksi") },
+                        label = { Text("Pustaka") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = SpotifyGreen,
+                            selectedTextColor = SpotifyGreen,
+                            unselectedIconColor = SpotifyGrey,
+                            unselectedTextColor = SpotifyGrey,
+                            indicatorColor = Color.Transparent
+                        )
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 3,
+                        onClick = { selectedTab = 3 },
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                        label = { Text("Pengaturan") },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = SpotifyGreen,
                             selectedTextColor = SpotifyGreen,
@@ -129,6 +143,7 @@ fun MainContent() {
                 0 -> HomeScreen()
                 1 -> SearchScreen()
                 2 -> LibraryScreen()
+                3 -> SettingsScreen()
             }
         }
     }

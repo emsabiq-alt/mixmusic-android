@@ -45,6 +45,9 @@ object AudioPlayerManager {
     val currentLyricIndex = _currentLyricIndex.asStateFlow()
 
     private var officialDurationMs: Long? = null
+    private var preloadedTrackId: String? = null
+    private var preloadedStreamUrl: String? = null
+    private var isTransitioning = false
 
     val queue = mutableListOf<Track>()
     val originalQueue = mutableListOf<Track>()
@@ -113,6 +116,7 @@ object AudioPlayerManager {
         _currentTimeMs.value = 0L
         _durationMs.value = (track.durationSeconds ?: 0) * 1000L
         officialDurationMs = track.durationSeconds?.let { it * 1000L }
+        isTransitioning = false
 
         if (fromQueue.isNotEmpty()) {
             originalQueue.clear()
@@ -137,8 +141,15 @@ object AudioPlayerManager {
             }
         }
 
-        // 2. Resolve Direct Stream URL (with Spotify hybrid bridge) and play via ExoPlayer
+        // 2. Resolve Direct Stream URL (with Preload Cache) and play via ExoPlayer
         scope.launch {
+            if (preloadedTrackId == track.id && preloadedStreamUrl != null) {
+                val cachedUrl = preloadedStreamUrl!!
+                startExoPlayback(cachedUrl, track, track.thumbnailUrl)
+                preloadNextTrack()
+                return@launch
+            }
+
             var actualId = track.id
             var resolvedThumb = track.thumbnailUrl
 
@@ -154,24 +165,54 @@ object AudioPlayerManager {
             }
             val streamUrl = YouTubeMusicService.resolveStreamUrl(actualId)
             if (streamUrl != null) {
-                val mediaItem = MediaItem.Builder()
-                    .setUri(streamUrl)
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle(track.title)
-                            .setArtist(track.artist)
-                            .setArtworkUri(if (resolvedThumb.isNotEmpty()) android.net.Uri.parse(resolvedThumb) else null)
-                            .build()
-                    )
-                    .build()
-
-                exoPlayer?.let { p ->
-                    p.setMediaItem(mediaItem)
-                    p.prepare()
-                    p.play()
-                }
+                startExoPlayback(streamUrl, track, resolvedThumb)
+                preloadNextTrack()
             } else {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    private fun startExoPlayback(url: String, track: Track, thumb: String) {
+        val mediaItem = MediaItem.Builder()
+            .setUri(url)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(track.title)
+                    .setArtist(track.artist)
+                    .setArtworkUri(if (thumb.isNotEmpty()) android.net.Uri.parse(thumb) else null)
+                    .build()
+            )
+            .build()
+
+        exoPlayer?.let { p ->
+            p.setMediaItem(mediaItem)
+            p.prepare()
+            p.play()
+        }
+    }
+
+    private fun preloadNextTrack() {
+        val next = if (queue.isNotEmpty()) queue.first()
+        else if (originalQueue.isNotEmpty()) {
+            val cur = _currentTrack.value
+            val idx = originalQueue.indexOfFirst { it.id == cur?.id }
+            val nextIdx = if (idx != -1) (idx + 1) % originalQueue.size else 0
+            originalQueue[nextIdx]
+        } else null
+
+        if (next != null) {
+            scope.launch {
+                var actualId = next.id
+                if (next.id.startsWith("sp:")) {
+                    val found = YouTubeMusicService.search("${next.title} ${next.artist}")
+                    if (found.isNotEmpty()) actualId = found[0].id
+                }
+                val url = YouTubeMusicService.resolveStreamUrl(actualId)
+                if (url != null) {
+                    preloadedTrackId = next.id
+                    preloadedStreamUrl = url
+                }
             }
         }
     }
@@ -239,7 +280,8 @@ object AudioPlayerManager {
 
                     // Cut off long video silence: if we reached the official duration, auto-advance
                     val maxDur = _durationMs.value
-                    if (maxDur > 0 && pos >= (maxDur - 500) && _isPlaying.value) {
+                    if (maxDur > 0 && pos >= (maxDur - 500) && _isPlaying.value && !isTransitioning) {
+                        isTransitioning = true
                         handleTrackEnded()
                         return@launch
                     }

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.emsabiq.emsamusic.services.LocalLibraryManager
 import com.emsabiq.emsamusic.services.PlaybackService
 import com.emsabiq.emsamusic.services.SpotifyService
 import com.emsabiq.emsamusic.ui.components.MiniPlayer
@@ -43,6 +44,7 @@ class MainActivity : ComponentActivity() {
 
         // Initialize Spotify Service
         SpotifyService.init(this)
+        LocalLibraryManager.init(this)
 
         // Start media session service for background playback
         val serviceIntent = Intent(this, PlaybackService::class.java)

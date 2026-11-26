@@ -44,6 +44,12 @@ object AudioPlayerManager {
     private val _currentLyricIndex = MutableStateFlow(0)
     val currentLyricIndex = _currentLyricIndex.asStateFlow()
 
+    private val _isShuffle = MutableStateFlow(false)
+    val isShuffle = _isShuffle.asStateFlow()
+
+    private val _repeatMode = MutableStateFlow(Player.REPEAT_MODE_OFF)
+    val repeatMode = _repeatMode.asStateFlow()
+
     private var officialDurationMs: Long? = null
     private var preloadedTrackId: String? = null
     private var preloadedStreamUrl: String? = null
@@ -225,6 +231,34 @@ object AudioPlayerManager {
     fun resume() {
         exoPlayer?.play()
         _isPlaying.value = true
+    }
+
+    fun toggleShuffle() {
+        val next = !_isShuffle.value
+        _isShuffle.value = next
+        if (next && originalQueue.isNotEmpty()) {
+            val cur = _currentTrack.value
+            val shuffled = originalQueue.filter { it.id != cur?.id }.shuffled()
+            queue.clear()
+            queue.addAll(shuffled)
+        } else {
+            val cur = _currentTrack.value
+            val idx = originalQueue.indexOfFirst { it.id == cur?.id }
+            queue.clear()
+            if (idx != -1 && idx < originalQueue.size - 1) {
+                queue.addAll(originalQueue.subList(idx + 1, originalQueue.size))
+            }
+        }
+    }
+
+    fun cycleRepeatMode() {
+        val next = when (_repeatMode.value) {
+            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+            else -> Player.REPEAT_MODE_OFF
+        }
+        _repeatMode.value = next
+        exoPlayer?.repeatMode = next
     }
 
     fun togglePlayPause() {

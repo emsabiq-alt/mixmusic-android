@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -120,7 +121,7 @@ fun MainContent() {
                     NavigationBarItem(
                         selected = selectedTab == 3,
                         onClick = { selectedTab = 3 },
-                        icon = { Icon(Icons.Default.MoreVert, contentDescription = "Settings") },
+                        icon = { Icon(Icons.Default.Info, contentDescription = "Settings") },
                         label = { Text("Pengaturan") },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = SpotifyGreen,

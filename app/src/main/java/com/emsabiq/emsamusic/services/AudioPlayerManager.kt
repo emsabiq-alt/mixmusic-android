@@ -140,10 +140,16 @@ object AudioPlayerManager {
         // 2. Resolve Direct Stream URL (with Spotify hybrid bridge) and play via ExoPlayer
         scope.launch {
             var actualId = track.id
-            if (track.id.startsWith("sp:")) {
+            var resolvedThumb = track.thumbnailUrl
+
+            if (track.id.startsWith("sp:") || track.thumbnailUrl.isEmpty()) {
                 val found = YouTubeMusicService.search("${track.title} ${track.artist}")
                 if (found.isNotEmpty()) {
                     actualId = found[0].id
+                    if (found[0].thumbnailUrl.isNotEmpty()) {
+                        resolvedThumb = found[0].thumbnailUrl
+                        _currentTrack.value = track.copy(thumbnailUrl = resolvedThumb)
+                    }
                 }
             }
             val streamUrl = YouTubeMusicService.resolveStreamUrl(actualId)
@@ -154,7 +160,7 @@ object AudioPlayerManager {
                         MediaMetadata.Builder()
                             .setTitle(track.title)
                             .setArtist(track.artist)
-                            .setArtworkUri(android.net.Uri.parse(track.thumbnailUrl))
+                            .setArtworkUri(if (resolvedThumb.isNotEmpty()) android.net.Uri.parse(resolvedThumb) else null)
                             .build()
                     )
                     .build()

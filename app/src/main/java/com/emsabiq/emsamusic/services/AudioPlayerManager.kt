@@ -1,6 +1,8 @@
 package com.emsabiq.emsamusic.services
 
 import android.content.Context
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -20,6 +22,7 @@ import kotlinx.coroutines.launch
 
 object AudioPlayerManager {
     private var exoPlayer: ExoPlayer? = null
+    private var appContext: Context? = null
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private var progressJob: Job? = null
 
@@ -59,6 +62,7 @@ object AudioPlayerManager {
     val originalQueue = mutableListOf<Track>()
 
     fun getOrCreatePlayer(context: Context): ExoPlayer {
+        appContext = context.applicationContext
         if (exoPlayer == null) {
             // Instant buffer load control: start playback with only 500ms of buffer
             val loadControl = DefaultLoadControl.Builder()
@@ -70,8 +74,16 @@ object AudioPlayerManager {
                 )
                 .build()
 
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                .setUsage(C.USAGE_MEDIA)
+                .build()
+
             exoPlayer = ExoPlayer.Builder(context.applicationContext)
                 .setLoadControl(loadControl)
+                .setAudioAttributes(audioAttributes, true) // True = handle audio focus automatically
+                .setWakeMode(C.WAKE_MODE_NETWORK) // Keep CPU & Network awake when screen turns off!
+                .setHandleAudioBecomingNoisy(true) // Auto pause when headphones unplugged
                 .build().apply {
                     repeatMode = Player.REPEAT_MODE_OFF
                     addListener(object : Player.Listener {
@@ -180,6 +192,14 @@ object AudioPlayerManager {
     }
 
     private fun startExoPlayback(url: String, track: Track, thumb: String) {
+        // Ensure PlaybackService is active as foreground service
+        appContext?.let { ctx ->
+            try {
+                val serviceIntent = android.content.Intent(ctx, PlaybackService::class.java)
+                ctx.startService(serviceIntent)
+            } catch (_: Exception) {}
+        }
+
         val mediaItem = MediaItem.Builder()
             .setUri(url)
             .setMediaMetadata(
